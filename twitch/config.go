@@ -6,11 +6,12 @@ import (
 )
 
 type Config struct {
-	User        string `json:"user"`
-	Channel     string `json:"channel"`
-	Token       string `json:"token"`
-	JoinMessage string `json:"joinMessage"`
-	PartMessage string `json:"partMessage"`
+	User        string  `json:"user"`
+	Channel     string  `json:"channel"`
+	Token       string  `json:"token"`
+	JoinMessage string  `json:"joinMessage"`
+	PartMessage string  `json:"partMessage"`
+	Alerts      []Alert `json:"alerts"`
 }
 
 func ReadConfig(cfg *Config, file string) error {

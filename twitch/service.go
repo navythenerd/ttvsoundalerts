@@ -12,21 +12,23 @@ import (
 )
 
 type Service struct {
-	ctx       context.Context
-	cancelCtx context.CancelFunc
-	irc       *ttvirc.Client
-	config    *Config
-	router    *lionrouter.Router
-	sockets   []*websocket.Conn
-	alerts    chan string
+	ctx        context.Context
+	cancelCtx  context.CancelFunc
+	irc        *ttvirc.Client
+	config     *Config
+	router     *lionrouter.Router
+	sockets    []*websocket.Conn
+	alertQueue chan *Alert
+	alerts     map[string]Alert
 }
 
 func New(cfg *Config) *Service {
 	srv := &Service{
-		config:  cfg,
-		router:  lionrouter.New(),
-		sockets: make([]*websocket.Conn, 0),
-		alerts:  make(chan string),
+		config:     cfg,
+		router:     lionrouter.New(),
+		sockets:    make([]*websocket.Conn, 0),
+		alertQueue: make(chan *Alert),
+		alerts:     make(map[string]Alert),
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -36,15 +38,16 @@ func New(cfg *Config) *Service {
 	srv.irc = ttvirc.NewClient(cfg.User, fmt.Sprintf("oauth:%s", cfg.Token))
 
 	srv.irc.OnConnect(func() {
-		log.Printf("Bot joined twitch channel: %s\n", cfg.Channel)
+		log.Printf("alert bot joined twitch channel: %s\n", cfg.Channel)
 		srv.irc.Say(cfg.Channel, cfg.JoinMessage)
 	})
 
-	srv.irc.OnPrivateMessage(srv.privateMessageHandler)
+	srv.irc.OnPrivateMessage(srv.alertMessageHandler)
 	srv.irc.Join(cfg.Channel)
 
+	srv.loadAlerts()
 	srv.registerAlertPlayer()
-	srv.StartAlertServiceWorker()
+	srv.startAlertServiceWorker()
 
 	return srv
 }
@@ -71,8 +74,4 @@ func (s *Service) Shutdown() {
 
 func (s *Service) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
-}
-
-func (s *Service) privateMessageHandler(message ttvirc.PrivateMessage) {
-	s.alerts <- "https://www.myinstants.com/media/sounds/pew_pew-dknight556-1379997159.mp3"
 }

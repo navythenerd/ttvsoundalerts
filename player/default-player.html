@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+    <title>TTVSoundAlerts Overlay</title>
+</head>
+<body>
+    <audio id="alert">
+    </audio>
+    
+    <script type="application/javascript" async>
+        const alertPlayer = document.getElementById("alert");
+        const socket = new WebSocket('ws://localhost:8000/alerts');
+
+        socket.addEventListener('message', (event) => {
+            console.log(event.data)
+
+            try {
+                let alert = JSON.parse(event.data)     
+                alertPlayer.src = alert.media;
+                alertPlayer.play();           
+            } catch (error) {
+                console.error(error)
+            }
+
+            
+        });
+    </script>
+</body>
